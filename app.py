@@ -51,8 +51,7 @@ async def searchquery(
     ):
     try:
         con = cnxpool.get_connection()
-    except Exception as e:
-        print ("error:",e)
+    except Exception:
         raise HTTPException(status_code=500, detail="資料庫連線錯誤")
 
     try:
@@ -113,7 +112,7 @@ async def searchquery(
     except HTTPException as e:
         raise e
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -122,8 +121,7 @@ async def searchquery(
 async def searchid(attractionId: int):
     try:
         con = cnxpool.get_connection()
-    except Exception as e:
-        print ("error:",e)
+    except Exception:
         raise HTTPException(status_code=500, detail="資料庫連線錯誤")
     
     try:
@@ -154,10 +152,63 @@ async def searchid(attractionId: int):
 
         return {"data": result}
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@app.get("")
+# categories
+@app.get("/api/categories")
+async def categories():
+    try:
+        con = cnxpool.get_connection()
+    except Exception:
+        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+    
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+                        SELECT DISTINCT category
+                        FROM attractions;
+                        """,)
+        result = cursor.fetchall()
+        cursor.close()
+        result_list = []
+        for item in result:
+            result_list.append(item["category"])
+        return {"data": result_list}
+    except Exception:
+        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+
+# mrt order
+@app.get("/api/mrts")
+async def mrts():
+    try:
+        con = cnxpool.get_connection()
+    except Exception:
+        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+    
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+                    SELECT mrt
+                    FROM (
+                        SELECT mrt, COUNT(*) AS mrt_count
+                        FROM attractions
+                        GROUP BY mrt)
+                    AS mrt_only
+                    ORDER BY mrt_count DESC;
+                    """,)
+        result = cursor.fetchall()
+        cursor.close()
+        result_list = []
+        for item in result:
+            result_list.append(item["mrt"])
+        return {"data": result_list}
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+
+
 
 
 @app.exception_handler(HTTPException)
@@ -174,7 +225,7 @@ async def exeption_handler(request:Request, exc:Exception):
 
 @app.exception_handler(RequestValidationError)
 async def exeption_handler(request:Request, exc:RequestValidationError):  
-    print(exc.errors()) 
+    # print(exc.errors()) 
     return JSONResponse(
        status_code=400,
         content={

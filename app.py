@@ -14,8 +14,8 @@ from mysql.connector import Error
 
 dbconfig = {
   "host":"localhost",
-  "user":"root",
-  "password":"mysql",
+  "user":"appuser",
+  "password":"apppasword",
   "database":"tpidaytrip",
 }
 
@@ -207,10 +207,7 @@ async def mrts():
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-
-
-
-
+# error handle
 @app.exception_handler(HTTPException)
 async def exeption_handler(request:Request, exc:Exception):
     if exc.status_code == 500:

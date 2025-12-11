@@ -2,18 +2,30 @@ from fastapi import *
 from fastapi.responses import FileResponse
 
 from typing import Annotated
-from fastapi import FastAPI, Query
+from fastapi import  Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 app=FastAPI()
 
 import mysql.connector
+from mysql.connector import pooling
+from mysql.connector import Error
 
-con = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="mysql",
-  database="tpidaytrip"
+dbconfig = {
+  "host":"localhost",
+  "user":"root",
+  "password":"mysql",
+  "database":"tpidaytrip",
+}
+
+cnxpool = mysql.connector.pooling.MySQLConnectionPool(
+    pool_name="mypool",
+    pool_size=10,
+    pool_reset_session=True,
+    **dbconfig
 )
+
 
 # Static Pages (Never Modify Code in this Block)
 @app.get("/", include_in_schema=False)
@@ -30,32 +42,143 @@ async def thankyou(request: Request):
     return FileResponse("./static/thankyou.html", media_type="text/html")
 
 
+# attractions query
+@app.get("/api/attractions")
+async def searchquery(
+    page: Annotated[int, Query(ge=0)] = 0,
+    category: Annotated[str | None, Query()] = None,
+    keyword: Annotated[str | None, Query()] = None
+    ):
+    try:
+        con = cnxpool.get_connection()
+    except Exception as e:
+        print ("error:",e)
+        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+
+    try:
+        cursor = con.cursor(dictionary=True)
+
+        nextPage = page + 1
+        pageStart = page * 8
+
+        sql = "SELECT * FROM attractions WHERE 1=1"
+        params = []
+
+        if category:
+            sql += " AND category = %s"
+            params.append(category)
+
+        if keyword:
+            sql += " AND (mrt = %s OR name LIKE %s)"
+            params.extend([keyword, "%" + keyword + "%"])
+
+        sql += " LIMIT 8 OFFSET %s"
+        params.append(pageStart)
+
+        cursor.execute(sql, params)
+        result = cursor.fetchall()
+
+        if page > 0 and len(result) == 0:
+            raise HTTPException(status_code=500, detail="Page number out of range")
+        if category and len(result) == 0:
+            raise HTTPException(status_code=500, detail="Invalid category value")
+        if keyword and len(result) == 0:
+            raise HTTPException(status_code=500, detail=f"No results found matching '{keyword}'")
+
+        id_list = [item["id"] for item in result]
+
+        placeholders = ', '.join(['%s'] * len(id_list))
+        sql_img = f"""
+            SELECT images.attraction_id, images.image_url
+            FROM images
+            WHERE images.attraction_id IN ({placeholders});
+        """
+        cursor.execute(sql_img, tuple(id_list))
+        result_img = cursor.fetchall()
+
+        urlMap = {}
+        for item in result_img:
+            if item["attraction_id"] not in urlMap:
+                urlMap[item["attraction_id"]] = []
+            urlMap[item["attraction_id"]].append(item["image_url"])
+
+        for item in result:
+            item["images"] = urlMap.get(item["id"],[])
+
+        return {
+            "nextPage": nextPage,
+            "data": result
+        }
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+# attraction id
 @app.get("/api/attraction/{attractionId}")
 async def searchid(attractionId: int):
-    cursor = con.cursor(dictionary=True)
-    cursor.execute("""
-                SELECT * FROM attractions WHERE id=%s
-                """, (attractionId,))
-    result = cursor.fetchone()
+    try:
+        con = cnxpool.get_connection()
+    except Exception as e:
+        print ("error:",e)
+        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
     
-    if result == None:
-        return {
-            "error": True,
-            "message": "景點編號不存在"
-        }
-    
-    cursor.execute("""
-                SELECT images.image_url
-                FROM attractions
-                JOIN images on images.attraction_id = attractions.id
-                WHERE attractions.id = %s;
-                """, (attractionId,))
-    result_img = cursor.fetchall()
-    con.close()
-    
-    imgurl_list = []
-    for url in result_img:
-        imgurl_list.append(url["image_url"])
-    result["image"]=imgurl_list
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+                    SELECT * FROM attractions WHERE id=%s
+                    """, (attractionId,))
+        result = cursor.fetchone()
 
-    return {"data": result}
+        if result == None:
+            return {
+                "error": True,
+                "message": "景點編號不存在"
+            }
+
+        cursor.execute("""
+                    SELECT images.image_url
+                    FROM attractions
+                    JOIN images on images.attraction_id = attractions.id
+                    WHERE attractions.id = %s;
+                    """, (attractionId,))
+        result_img = cursor.fetchall()
+        cursor.close()
+        imgurl_list = []
+        for url in result_img:
+            imgurl_list.append(url["image_url"])
+        result["image"]=imgurl_list
+
+        return {"data": result}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@app.get("")
+
+
+@app.exception_handler(HTTPException)
+async def exeption_handler(request:Request, exc:Exception):
+    if exc.status_code == 500:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": True,
+                "message": exc.detail
+            }
+        )
+    raise exc
+
+@app.exception_handler(RequestValidationError)
+async def exeption_handler(request:Request, exc:RequestValidationError):  
+    print(exc.errors()) 
+    return JSONResponse(
+       status_code=400,
+        content={
+            "error": True,
+            "message": exc.errors()[0].get("msg")
+        }
+    )

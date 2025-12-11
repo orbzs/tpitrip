@@ -8,8 +8,8 @@ data = raw["result"]["results"]
 
 con = mysql.connector.connect(
   host = "localhost",
-  user = "root",
-  password = "mysql",
+  user = "appuser",
+  password = "apppassword",
   database = "tpidaytrip"
 )
 

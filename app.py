@@ -14,8 +14,8 @@ from mysql.connector import Error
 
 dbconfig = {
   "host":"localhost",
-  "user":"appuser",
-  "password":"apppasword",
+  "user":"root",
+  "password":"mysql",
   "database":"tpidaytrip",
 }
 
@@ -57,8 +57,7 @@ async def searchquery(
     try:
         cursor = con.cursor(dictionary=True)
 
-        nextPage = page + 1
-        pageStart = page * 8 if len(result) == 8 else None
+        pageStart = page * 8
 
         sql = "SELECT * FROM attractions WHERE 1=1"
         params = []
@@ -104,6 +103,8 @@ async def searchquery(
         for item in result:
             item["images"] = urlMap.get(item["id"],[])
 
+        nextPage = page + 1 if len(result) == 8 else None
+
         return {
             "nextPage": nextPage,
             "data": result
@@ -116,8 +117,8 @@ async def searchquery(
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
     finally:
-        cursor.close()
-        con.close()
+        if cursor: cursor.close()
+        if con and con.is_connected(): con.close()
 
 
 # attraction id

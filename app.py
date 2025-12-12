@@ -58,7 +58,7 @@ async def searchquery(
         cursor = con.cursor(dictionary=True)
 
         nextPage = page + 1
-        pageStart = page * 8
+        pageStart = page * 8 if len(result) == 8 else None
 
         sql = "SELECT * FROM attractions WHERE 1=1"
         params = []
@@ -114,6 +114,10 @@ async def searchquery(
 
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    finally:
+        cursor.close()
+        con.close()
 
 
 # attraction id
@@ -144,7 +148,7 @@ async def searchid(attractionId: int):
                     WHERE attractions.id = %s;
                     """, (attractionId,))
         result_img = cursor.fetchall()
-        cursor.close()
+        
         imgurl_list = []
         for url in result_img:
             imgurl_list.append(url["image_url"])
@@ -154,6 +158,10 @@ async def searchid(attractionId: int):
 
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    finally:
+        cursor.close()
+        con.close()
 
 # categories
 @app.get("/api/categories")
@@ -170,13 +178,16 @@ async def categories():
                         FROM attractions;
                         """,)
         result = cursor.fetchall()
-        cursor.close()
+
         result_list = []
         for item in result:
             result_list.append(item["category"])
         return {"data": result_list}
     except Exception:
         raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+    finally:
+        cursor.close()
+        con.close()
 
 # mrt order
 @app.get("/api/mrts")
@@ -198,14 +209,16 @@ async def mrts():
                     ORDER BY mrt_count DESC;
                     """,)
         result = cursor.fetchall()
-        cursor.close()
+
         result_list = []
         for item in result:
             result_list.append(item["mrt"])
         return {"data": result_list}
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
+    finally:
+        cursor.close()
+        con.close()
 
 # error handle
 @app.exception_handler(HTTPException)

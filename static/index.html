@@ -78,16 +78,13 @@
           const res = await fetch("/api/categories");
           const data = await res.json();
 
-          // 清空原本內容（把寫死的 li 清掉）
           catListEl.innerHTML = "";
 
-          // 固定第一個：全部分類
           const allLi = document.createElement("li");
           allLi.className = "ul__cat";
           allLi.textContent = "全部分類";
           catListEl.appendChild(allLi);
 
-          // API 回傳的分類
           const categories = (data.data || []).filter(
             (c) => typeof c === "string" && c.trim().length
           );
@@ -197,7 +194,7 @@
           }
 
           requestAnimationFrame(() => {
-            if (!state.isEnd && isInViewport(anchor)) {
+            if (!state.isEnd && isInViewport(anchor, 300)) {
               loadAttractions(false);
             }
           });
@@ -211,9 +208,9 @@
       //
       const anchor = document.getElementById("scroll-anchor");
 
-      function isInViewport(el) {
+      function isInViewport(el, margin = 300) {
         const rect = el.getBoundingClientRect();
-        return rect.top < window.innerHeight && rect.bottom > 0;
+        return rect.top < window.innerHeight + margin && rect.bottom > 0;
       }
 
       const observer = new IntersectionObserver(
@@ -222,7 +219,7 @@
             loadAttractions();
           }
         },
-        { rootMargin: "200px" }
+        { rootMargin: "300px" }
       );
 
       observer.observe(anchor);

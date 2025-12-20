@@ -73,6 +73,38 @@
       });
     </script>
     <script>
+      async function loadCategories() {
+        try {
+          const res = await fetch("/api/categories");
+          const data = await res.json();
+
+          // 清空原本內容（把寫死的 li 清掉）
+          catListEl.innerHTML = "";
+
+          // 固定第一個：全部分類
+          const allLi = document.createElement("li");
+          allLi.className = "ul__cat";
+          allLi.textContent = "全部分類";
+          catListEl.appendChild(allLi);
+
+          // API 回傳的分類
+          const categories = (data.data || []).filter(
+            (c) => typeof c === "string" && c.trim().length
+          );
+
+          categories.forEach((c) => {
+            const li = document.createElement("li");
+            li.className = "ul__cat";
+            li.textContent = c;
+            catListEl.appendChild(li);
+          });
+        } catch (err) {
+          console.error("載入分類失敗", err);
+        }
+      }
+      loadCategories();
+    </script>
+    <script>
       //
       const state = {
         nextPage: 0,
@@ -163,6 +195,12 @@
           } else {
             state.nextPage = data.nextPage;
           }
+
+          requestAnimationFrame(() => {
+            if (!state.isEnd && isInViewport(anchor)) {
+              loadAttractions(false);
+            }
+          });
         } catch (err) {
           console.error("載入景點失敗", err);
         } finally {
@@ -172,6 +210,11 @@
 
       //
       const anchor = document.getElementById("scroll-anchor");
+
+      function isInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight && rect.bottom > 0;
+      }
 
       const observer = new IntersectionObserver(
         (entries) => {

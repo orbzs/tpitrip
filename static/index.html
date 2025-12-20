@@ -1,11 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Index</title>
-</head>
-<body>
-  
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Taipei-day-trip</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="nav">
+        <div class="nav__title">台北一日遊</div>
+        <div class="nav__login">
+          <a href="#">預定行程</a>
+          <a href="#">登入/註冊</a>
+        </div>
+      </div>
+      <div class="searchsec--bg">
+        <div class="searchsec">
+          <div class="searchsec__title">輕鬆享受台北一日悠閒</div>
+          <div class="searchsec__caption">
+            探索每個角落，體驗城市的深度旅遊行程
+          </div>
+          <form class="searchsec__searchform" action="">
+            <div class="searchform__dropdown" id="select">
+              <p>全部分類 ▼</p>
+              <ul class="dropdown__ul" id="catlist">
+                <li class="ul__cat">全部分類</li>
+                <li class="ul__cat">其　　他</li>
+                <li class="ul__cat">單車遊蹤</li>
+                <li class="ul__cat">宗教信仰</li>
+                <li class="ul__cat">戶外踏青</li>
+                <li class="ul__cat">歷史建築</li>
+                <li class="ul__cat">藍色公路</li>
+                <li class="ul__cat">藝文館所</li>
+                <li class="ul__cat">親子共遊</li>
+                <li class="ul__cat">養生溫泉</li>
+              </ul>
+            </div>
+            <input
+              class="searchform__input"
+              type="text"
+              placeholder="輸入景點名稱查詢"
+              name="keyword"
+            />
+            <button class="searchform__button" type="submit"></button>
+          </form>
+        </div>
+      </div>
+    </header>
+    <main>
+      <div class="mrtlist">
+        <button class="mrtlist__L"></button>
+        <div class="mrtlist__mrts" id="mrtlist__mrts"></div>
+        <button class="mrtlist__R"></button>
+      </div>
+      <div class="results" id="results"></div>
+      <div id="scroll-anchor"></div>
+    </main>
+    <footer>COPYRIGHT © 2021 台北一日遊(notosanstc bold 16)</footer>
+
+    <script>
+      const select = document.getElementById("select");
+      const catlist = document.getElementById("catlist");
+
+      select.addEventListener("click", function (e) {
+        e.stopPropagation();
+        catlist.classList.toggle("open");
+      });
+
+      document.addEventListener("click", function () {
+        catlist.classList.remove("open");
+      });
+    </script>
+    <script>
+      //
+      const state = {
+        nextPage: 0,
+        isLoading: false,
+        isEnd: false,
+        category: null,
+        keyword: null,
+      };
+
+      const resultsEl = document.getElementById("results");
+
+      //
+      function renderAttractions(list) {
+        list.forEach((item) => {
+          const attractionEl = document.createElement("div");
+          attractionEl.className = "results__attraction";
+
+          const bgEl = document.createElement("div");
+          bgEl.className = "attraction__bg";
+          bgEl.style.backgroundImage = `url(${item.images[0] || ""})`;
+
+          const nameEl = document.createElement("p");
+          nameEl.className = "attraction__bg__name";
+          nameEl.textContent = item.name;
+
+          bgEl.appendChild(nameEl);
+
+          const detailsEl = document.createElement("div");
+          detailsEl.className = "attraction__details";
+
+          const mrtEl = document.createElement("p");
+          mrtEl.className = "attraction__details__mrt";
+          mrtEl.textContent = item.mrt ?? "";
+
+          const categoryEl = document.createElement("p");
+          categoryEl.className = "attraction__details__category";
+          categoryEl.textContent = item.category;
+
+          detailsEl.appendChild(mrtEl);
+          detailsEl.appendChild(categoryEl);
+
+          attractionEl.appendChild(bgEl);
+          attractionEl.appendChild(detailsEl);
+
+          resultsEl.appendChild(attractionEl);
+        });
+      }
+
+      function renderNoResultMessage() {
+        const msg = document.createElement("div");
+        msg.className = "results__empty";
+        msg.textContent = "查無符合條件的景點";
+
+        resultsEl.appendChild(msg);
+      }
+
+      //
+      async function loadAttractions(reset = false) {
+        if (reset) {
+          state.nextPage = 0;
+          state.isEnd = false;
+          resultsEl.innerHTML = "";
+        }
+
+        if (state.isLoading || state.isEnd) return;
+
+        state.isLoading = true;
+
+        try {
+          const params = new URLSearchParams();
+          params.append("page", state.nextPage);
+          if (state.category) params.append("category", state.category);
+          if (state.keyword) params.append("keyword", state.keyword);
+
+          const res = await fetch(`/api/attractions?${params.toString()}`);
+          const data = await res.json();
+
+          if (reset && (!data.data || data.data.length === 0)) {
+            renderNoResultMessage();
+            state.isEnd = true;
+            return;
+          }
+
+          renderAttractions(data.data);
+
+          if (data.nextPage === null) {
+            state.isEnd = true;
+          } else {
+            state.nextPage = data.nextPage;
+          }
+        } catch (err) {
+          console.error("載入景點失敗", err);
+        } finally {
+          state.isLoading = false;
+        }
+      }
+
+      //
+      const anchor = document.getElementById("scroll-anchor");
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            loadAttractions();
+          }
+        },
+        { rootMargin: "200px" }
+      );
+
+      observer.observe(anchor);
+
+      //
+      loadAttractions(true);
+
+      //
+      const catListEl = document.getElementById("catlist");
+      const dropdownTitle = document.querySelector("#select p");
+
+      catListEl.addEventListener("click", (e) => {
+        if (!e.target.classList.contains("ul__cat")) return;
+
+        const selected = e.target.textContent.trim();
+
+        dropdownTitle.textContent = `${selected} ▼`;
+
+        state.category = selected === "全部分類" ? null : selected;
+
+        catListEl.classList.remove("open");
+      });
+
+      //
+      const searchForm = document.querySelector(".searchsec__searchform");
+      const keywordInput = document.querySelector(".searchform__input");
+
+      searchForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const kw = keywordInput.value.trim();
+
+        state.keyword = kw.length ? kw : null;
+
+        loadAttractions(true);
+      });
+
+      //
+      const mrtContainer = document.getElementById("mrtlist__mrts");
+
+      async function loadMrts() {
+        try {
+          const res = await fetch("/api/mrts");
+          const data = await res.json();
+
+          mrtContainer.innerHTML = "";
+
+          const mrts = (data.data || []).filter(
+            (name) => typeof name === "string" && name.trim().length
+          );
+
+          mrts.forEach((name) => {
+            const mrtEl = document.createElement("div");
+            mrtEl.className = "mrtlist__mrts__m";
+            mrtEl.textContent = name;
+            mrtContainer.appendChild(mrtEl);
+          });
+        } catch (err) {
+          console.error("載入 MRT 失敗", err);
+        }
+      }
+
+      mrtContainer.addEventListener("click", (e) => {
+        const target = e.target;
+        if (!target.classList.contains("mrtlist__mrts__m")) return;
+
+        const mrtName = target.textContent.trim();
+
+        keywordInput.value = mrtName;
+
+        state.keyword = mrtName.length ? mrtName : null;
+
+        loadAttractions(true);
+      });
+
+      loadMrts();
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const mrtContainer = document.getElementById("mrtlist__mrts");
+        const btnLeft = document.querySelector(".mrtlist__L");
+        const btnRight = document.querySelector(".mrtlist__R");
+
+        if (!mrtContainer || !btnLeft || !btnRight) return;
+
+        const getStep = () =>
+          Math.max(200, Math.floor(mrtContainer.clientWidth * 0.8));
+
+        btnLeft.addEventListener("click", () => {
+          mrtContainer.scrollBy({ left: -getStep(), behavior: "smooth" });
+        });
+
+        btnRight.addEventListener("click", () => {
+          mrtContainer.scrollBy({ left: getStep(), behavior: "smooth" });
+        });
+      });
+    </script>
+  </body>
 </html>

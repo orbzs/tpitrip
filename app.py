@@ -5,8 +5,11 @@ from typing import Annotated
 from fastapi import  Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
+
 
 app=FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 import mysql.connector
 from mysql.connector import pooling
@@ -76,14 +79,21 @@ async def searchquery(
         cursor.execute(sql, params)
         result = cursor.fetchall()
 
-        if page > 0 and len(result) == 0:
-            raise HTTPException(status_code=500, detail="Page number out of range")
-        if category and len(result) == 0:
-            raise HTTPException(status_code=500, detail="Invalid category value")
-        if keyword and len(result) == 0:
-            raise HTTPException(status_code=500, detail=f"No results found matching '{keyword}'")
+        if not result:
+            return {
+                "nextPage": None,
+                "data": result
+                }
+
+        # if page > 0 and len(result) == 0:
+        #     raise HTTPException(status_code=500, detail="Page number out of range")
+        # if category and len(result) == 0:
+        #     raise HTTPException(status_code=500, detail="Invalid category value")
+        # if keyword and len(result) == 0:
+        #     raise HTTPException(status_code=500, detail=f"No results found matching '{keyword}'")
 
         id_list = [item["id"] for item in result]
+        
 
         placeholders = ', '.join(['%s'] * len(id_list))
         sql_img = f"""
@@ -110,8 +120,8 @@ async def searchquery(
             "data": result
         }
 
-    except HTTPException as e:
-        raise e
+    # except HTTPException as e:
+    #     raise e
 
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -127,7 +137,7 @@ async def searchid(attractionId: int):
     try:
         con = cnxpool.get_connection()
     except Exception:
-        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+        raise HTTPException(status_code=500, detail="Database connection error")
     
     try:
         cursor = con.cursor(dictionary=True)
@@ -136,11 +146,8 @@ async def searchid(attractionId: int):
                     """, (attractionId,))
         result = cursor.fetchone()
 
-        if result == None:
-            return {
-                "error": True,
-                "message": "景點編號不存在"
-            }
+        if not result:
+            return {"data": result}
 
         cursor.execute("""
                     SELECT images.image_url
@@ -170,7 +177,7 @@ async def categories():
     try:
         con = cnxpool.get_connection()
     except Exception:
-        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+        raise HTTPException(status_code=500, detail="Database connection error")
     
     try:
         cursor = con.cursor(dictionary=True)
@@ -185,7 +192,7 @@ async def categories():
             result_list.append(item["category"])
         return {"data": result_list}
     except Exception:
-        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     finally:
         cursor.close()
         con.close()
@@ -196,7 +203,7 @@ async def mrts():
     try:
         con = cnxpool.get_connection()
     except Exception:
-        raise HTTPException(status_code=500, detail="資料庫連線錯誤")
+        raise HTTPException(status_code=500, detail="Database connection error")
     
     try:
         cursor = con.cursor(dictionary=True)

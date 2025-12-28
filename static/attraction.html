@@ -1,11 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attraction</title>
-</head>
-<body>
-  
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attraction</title>
+    <link rel="stylesheet" href="/static/attraction.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="nav">
+        <a class="nav__title bold" href="/">台北一日遊</a>
+        <div class="nav__links">
+          <a class="links__link medium" href="#">預定行程</a>
+          <a class="links__link medium" href="#">登入/註冊</a>
+        </div>
+      </div>
+    </header>
+    <main class="main">
+      <div class="sec1">
+        <div class="sec1__lightbox">
+          <button class="lightbox__button lightbox__L"></button>
+          <div class="lightbox__pic"></div>
+          <button class="lightbox__button lightbox__R"></button>
+          <div class="lightbox__indicators"></div>
+        </div>
+        <div class="sec1__book">
+          <div class="book__info">
+            <div class="info__name bold" id="name">平安鐘</div>
+            <div class="info__details medium">
+              <span class="details__cat" id="category">公共藝術</span> at
+              <span class="details__mrt" id="mrt">忠孝復興</span>
+            </div>
+            <div class="book__card">
+              <div class="card__title bold">訂購導覽行程</div>
+              <div class="card__cap">
+                以此景點為中心的一日行程，帶您探索城市角落故事
+              </div>
+              <form class="card__form bold">
+                <div class="form__date">
+                  選擇日期：<input type="date" class="date__input" />
+                </div>
+                <div class="form__time">
+                  選擇時間：
+                  <div class="time__item">
+                    <input
+                      type="radio"
+                      name="time"
+                      id="noon"
+                      class="time__item__radio"
+                      checked
+                    /><label for="noon" class="medium">上半天</label>
+                  </div>
+                  <div class="time__item">
+                    <input
+                      type="radio"
+                      name="time"
+                      id="afternoon"
+                      class="time__item__radio"
+                    /><label for="afternoon" class="medium">下半天</label>
+                  </div>
+                </div>
+                <div class="form__price">
+                  導覽費用：<span class="price medium">新台幣2000元</span>
+                </div>
+                <button type="submit" class="form__button">開始預約行程</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sec2">
+        <div class="sec2__description" id="description">
+          平安鐘祈求大家的平安，這是為了紀念921地震週年的設計，在喧鬧的廣場上每個小時鳴鐘，保佑平安，祈禱臺灣不會再發生這樣的天災。雙手合十加上108個黃色的琉璃乳丁，隨著緩緩流下的水，在底下的一個小噴泉噴出。雙手合十的意義，一個是祈福，一個是包容，教我們要包容這樣的改變，撫平這樣的傷口。下面的水緩緩流出，代表著人的生命力是不斷地延續下去。緩緩地鐘聲，卻帶來心中的寧靜。
+          這個平安鐘是由建築師姚仁喜與琉璃創作家王俠軍共同設計，長6公尺、寬5公尺，以鑄銅製成，由法鼓山文教基金會全額出資。平安鐘點綴都市景觀，不時提醒大家，面對刻骨銘心的災難痛苦，更應該有謙卑的一顆心。
+        </div>
+        <div class="sec2__address">
+          <div class="address__title bold">景點地址：</div>
+          <div class="address__address" id="address">
+            臺北市 大安區忠孝東路4段
+          </div>
+        </div>
+        <div class="sec2__direction">
+          <div class="direction__title bold">交通方式：</div>
+          <div class="direction__direction" id="direction">
+            捷運站名：忠孝復興站4號出口1.公車：204、212、212直、232、232副、262、262(區間)、278、299、521、605、605(副)、605(新台五線)、667、903、忠孝新幹線至頂好市場站
+            2.車位：太平洋崇光百貨地下停車場或市民大道附近地下停車場
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="footer bold">COPYRIGHT © 2021 台北一日遊</footer>
+
+    <script>
+      // Part 3-2: Fetch Attraction API
+      document.addEventListener("DOMContentLoaded", () => {
+        const attractionId = getAttractionIdFromPath();
+        if (!attractionId) {
+          console.error("No attractionId found in URL path.");
+          return;
+        }
+        fetchAttractionAndRender(attractionId);
+        initTimeSelectionPricing();
+      });
+
+      function getAttractionIdFromPath() {
+        const parts = window.location.pathname.split("/").filter(Boolean);
+        const last = parts[parts.length - 1];
+        const id = Number(last);
+        return Number.isInteger(id) && id > 0 ? id : null;
+      }
+
+      async function fetchAttractionAndRender(attractionId) {
+        try {
+          const res = await fetch(`/api/attraction/${attractionId}`, {
+            method: "GET",
+            credentials: "include",
+            headers: { Accept: "application/json" },
+          });
+
+          if (!res.ok) {
+            console.error("Fetch attraction failed:", res.status);
+            return;
+          }
+
+          const json = await res.json();
+          const data = json && json.data ? json.data : null;
+
+          if (!data) {
+            console.error("Invalid response format: missing data field.");
+            return;
+          }
+
+          renderAttraction(data);
+        } catch (err) {
+          console.error("Network or parsing error:", err);
+        }
+      }
+
+      function renderAttraction(data) {
+        setText("#name", data.name);
+        setText("#category", data.category);
+        setText("#mrt", data.mrt || ""); // mrt 可能為 null
+        setText("#description", data.description);
+        setText("#address", data.address);
+        setText("#direction", data.transport);
+
+        initSlideshow(data.image);
+      }
+
+      function setText(selector, text) {
+        const el = document.querySelector(selector);
+        if (!el) return;
+        el.textContent = text ?? "";
+      }
+
+      // Part 3-5
+      let slideshow = {
+        images: [],
+        index: 0,
+        imgEl: null,
+        bars: [],
+        inited: false,
+      };
+
+      function initSlideshow(images) {
+        const lightboxEl = document.querySelector(".sec1__lightbox");
+        const picBox = document.querySelector(".lightbox__pic");
+        const btnL = document.querySelector(".lightbox__L");
+        const btnR = document.querySelector(".lightbox__R");
+
+        if (!lightboxEl || !picBox || !btnL || !btnR) return;
+
+        const list = Array.isArray(images) ? images.filter(Boolean) : [];
+        slideshow.images = list;
+        slideshow.index = 0;
+
+        picBox.innerHTML = "";
+
+        const img = document.createElement("img");
+        img.alt = "attraction image";
+        img.loading = "eager";
+        picBox.appendChild(img);
+
+        slideshow.imgEl = img;
+
+        // Part 3-5 indication bars
+        const oldIndicators = lightboxEl.querySelector(".lightbox__indicators");
+        if (oldIndicators) oldIndicators.remove();
+
+        const indicators = document.createElement("div");
+        indicators.className = "lightbox__indicators";
+        lightboxEl.appendChild(indicators);
+
+        const lightboxWidth = lightboxEl.clientWidth;
+        const count = list.length;
+        const barWidth = count > 0 ? lightboxWidth / count : 0;
+
+        slideshow.bars = [];
+        list.forEach((_, i) => {
+          const bar = document.createElement("button");
+          bar.type = "button";
+          bar.className = "lightbox__bar";
+
+          bar.style.width = `${barWidth}px`;
+
+          bar.addEventListener("click", () => {
+            goTo(i);
+          });
+
+          indicators.appendChild(bar);
+          slideshow.bars.push(bar);
+        });
+
+        window.addEventListener("resize", () => {
+          if (!slideshow.images.length) return;
+
+          const lightboxEl = document.querySelector(".sec1__lightbox");
+          const barWidth = lightboxEl.clientWidth / slideshow.images.length;
+
+          slideshow.bars.forEach((bar) => {
+            bar.style.width = `${barWidth}px`;
+          });
+        });
+
+        const hasMulti = list.length > 1;
+        btnL.style.display = hasMulti ? "" : "none";
+        btnR.style.display = hasMulti ? "" : "none";
+        indicators.style.display = list.length > 1 ? "" : "none";
+
+        if (!slideshow.inited) {
+          btnL.addEventListener("click", () => prev());
+          btnR.addEventListener("click", () => next());
+          slideshow.inited = true;
+        }
+
+        renderSlide();
+      }
+
+      function renderSlide() {
+        const { images, index, imgEl, bars } = slideshow;
+        if (!imgEl) return;
+
+        if (!images.length) {
+          imgEl.removeAttribute("src");
+          bars.forEach((d) => d.classList.remove("is-active"));
+          return;
+        }
+
+        imgEl.src = images[index];
+
+        bars.forEach((d, i) => {
+          if (i === index) d.classList.add("is-active");
+          else d.classList.remove("is-active");
+        });
+      }
+
+      function prev() {
+        const n = slideshow.images.length;
+        if (n <= 1) return;
+        slideshow.index = (slideshow.index - 1 + n) % n;
+        renderSlide();
+      }
+
+      function next() {
+        const n = slideshow.images.length;
+        if (n <= 1) return;
+        slideshow.index = (slideshow.index + 1) % n;
+        renderSlide();
+      }
+
+      function goTo(i) {
+        const n = slideshow.images.length;
+        if (!n) return;
+        slideshow.index = Math.max(0, Math.min(i, n - 1));
+        renderSlide();
+      }
+
+      // Part 3-3: Time Selection
+      function initTimeSelectionPricing() {
+        const noonRadio = document.querySelector("#noon");
+        const afternoonRadio = document.querySelector("#afternoon");
+        const priceEl = document.querySelector(".price");
+
+        if (!noonRadio || !afternoonRadio || !priceEl) return;
+
+        const PRICE_NOON = 2000;
+        const PRICE_AFTERNOON = 2500;
+
+        const updatePrice = () => {
+          if (noonRadio.checked) {
+            priceEl.textContent = `新台幣${PRICE_NOON}元`;
+          } else if (afternoonRadio.checked) {
+            priceEl.textContent = `新台幣${PRICE_AFTERNOON}元`;
+          }
+        };
+
+        noonRadio.addEventListener("change", updatePrice);
+        afternoonRadio.addEventListener("change", updatePrice);
+
+        updatePrice();
+      }
+    </script>
+  </body>
 </html>

@@ -4,6 +4,7 @@
   box-sizing: border-box;
   font-family: "Noto Sans TC", sans-serif;
   font-size: 16px;
+  font-weight: 500;
 }
 
 .nav {
@@ -201,6 +202,9 @@ main {
   height: 242px;
   border: 1px solid #e8e8e8;
   border-radius: 5px;
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 .results .results__attraction .attraction__bg {
   display: flex;

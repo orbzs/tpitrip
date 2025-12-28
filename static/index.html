@@ -57,7 +57,7 @@
       <div class="results" id="results"></div>
       <div id="scroll-anchor"></div>
     </main>
-    <footer>COPYRIGHT © 2021 台北一日遊(notosanstc bold 16)</footer>
+    <footer>COPYRIGHT © 2021 台北一日遊</footer>
 
     <script>
       const select = document.getElementById("select");
@@ -116,12 +116,14 @@
       //
       function renderAttractions(list) {
         list.forEach((item) => {
-          const attractionEl = document.createElement("div");
-          attractionEl.className = "results__attraction";
+          const attractionLinkEl = document.createElement("a");
+          attractionLinkEl.className = "results__attraction";
+          attractionLinkEl.href = `/attraction/${item.id}`; // Part 3-4
+          attractionLinkEl.setAttribute("aria-label", item.name);
 
           const bgEl = document.createElement("div");
           bgEl.className = "attraction__bg";
-          bgEl.style.backgroundImage = `url(${item.images[0] || ""})`;
+          bgEl.style.backgroundImage = `url(${item.images?.[0] || ""})`;
 
           const nameEl = document.createElement("p");
           nameEl.className = "attraction__bg__name";
@@ -143,10 +145,10 @@
           detailsEl.appendChild(mrtEl);
           detailsEl.appendChild(categoryEl);
 
-          attractionEl.appendChild(bgEl);
-          attractionEl.appendChild(detailsEl);
+          attractionLinkEl.appendChild(bgEl);
+          attractionLinkEl.appendChild(detailsEl);
 
-          resultsEl.appendChild(attractionEl);
+          resultsEl.appendChild(attractionLinkEl);
         });
       }
 

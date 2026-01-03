@@ -12,7 +12,7 @@
         <a class="nav__title bold" href="/">台北一日遊</a>
         <div class="nav__links">
           <a class="links__link medium" href="#">預定行程</a>
-          <a class="links__link medium" href="#">登入/註冊</a>
+          <a class="links__link medium" href="#" id="login">登入/註冊</a>
         </div>
       </div>
     </header>
@@ -90,6 +90,67 @@
       </div>
     </main>
     <footer class="footer bold">COPYRIGHT © 2021 台北一日遊</footer>
+    <div class="signin">
+      <div class="signin__decbar"></div>
+      <div class="signin__box">
+        <div class="signin__title bold">登入會員帳號</div>
+        <div class="signin__closeBtn"></div>
+        <form action="" class="signin__form">
+          <input
+            class="form__input"
+            type="text"
+            placeholder="輸入電子信箱"
+            name="in_email"
+          />
+          <input
+            class="form__input"
+            type="password"
+            placeholder="輸入密碼"
+            name="in_pw"
+          />
+          <button class="button" type="submit">登入帳戶</button>
+        </form>
+        <div>
+          <a href="" class="signin__tosignup" id="toSignup"
+            >還沒有帳戶？點此註冊</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="signup">
+      <div class="signup__decbar"></div>
+      <div class="signup__box">
+        <div class="signup__title bold">註冊會員帳號</div>
+        <div class="signup__closeBtn"></div>
+        <form action="" class="signup__form">
+          <input
+            class="form__input"
+            type="text"
+            placeholder="輸入姓名"
+            name="up_name"
+          />
+          <input
+            class="form__input"
+            type="text"
+            placeholder="輸入電子郵件"
+            name="up_email"
+          />
+          <input
+            class="form__input"
+            type="password"
+            placeholder="輸入密碼"
+            name="up_pw"
+          />
+          <button class="button" type="submit">註冊新帳戶</button>
+        </form>
+        <div>
+          <a href="" class="signup__tosignin" id="toSignin"
+            >已經有帳戶了？點此登入</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="overlay"></div>
 
     <script>
       // Part 3-2: Fetch Attraction API
@@ -101,6 +162,9 @@
         }
         fetchAttractionAndRender(attractionId);
         initTimeSelectionPricing();
+
+        initAuthDialog();
+        initAuthStatus();
       });
 
       function getAttractionIdFromPath() {
@@ -299,6 +363,216 @@
         afternoonRadio.addEventListener("change", updatePrice);
 
         updatePrice();
+      }
+    </script>
+    <script>
+      // Part 4-3: User Sign-In Status Checking Procedure
+      async function initAuthStatus() {
+        const loginBtn = document.querySelector("#login");
+        if (!loginBtn) return;
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          loginBtn.textContent = "登入/註冊";
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/user/auth", {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const result = await res.json();
+
+          if (!res.ok || !result || result.data === null) {
+            localStorage.removeItem("token");
+            loginBtn.textContent = "登入/註冊";
+            return;
+          }
+
+          loginBtn.textContent = "登出系統";
+
+          const newBtn = loginBtn.cloneNode(true);
+          loginBtn.parentNode.replaceChild(newBtn, loginBtn);
+
+          newBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            signOut();
+          });
+        } catch (err) {
+          console.error("Auth status check failed:", err);
+          localStorage.removeItem("token");
+          loginBtn.textContent = "登入/註冊";
+        }
+      }
+
+      function signOut() {
+        localStorage.removeItem("token");
+        location.reload();
+      }
+    </script>
+    <script>
+      // Part 4-2: Pop-Up Dialog for User Sign Up/In
+
+      function initAuthDialog() {
+        const loginBtn = document.querySelector("#login");
+
+        const signin = document.querySelector(".signin");
+        const signup = document.querySelector(".signup");
+        const overlay = document.querySelector(".overlay");
+
+        const closeSignin = document.querySelector(".signin__closeBtn");
+        const closeSignup = document.querySelector(".signup__closeBtn");
+
+        const toSignup = document.querySelector("#toSignup");
+        const toSignin = document.querySelector("#toSignin");
+
+        if (!loginBtn || !signin || !signup) return;
+
+        const openOverlay = () => overlay.classList.add("is-open");
+        const closeOverlay = () => overlay.classList.remove("is-open");
+
+        const openSignin = () => {
+          clearAuthMsg();
+          signin.classList.add("is-open");
+          signup.classList.remove("is-open");
+          openOverlay();
+        };
+
+        const openSignup = () => {
+          clearAuthMsg();
+          signup.classList.add("is-open");
+          signin.classList.remove("is-open");
+          openOverlay();
+        };
+
+        const closeAll = () => {
+          clearAuthMsg();
+          signin.classList.remove("is-open");
+          signup.classList.remove("is-open");
+          closeOverlay();
+        };
+
+        loginBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          openSignin();
+          openOverlay();
+        });
+
+        if (closeSignin) closeSignin.addEventListener("click", closeAll);
+        if (closeSignup) closeSignup.addEventListener("click", closeAll);
+        overlay.addEventListener("click", closeAll);
+
+        if (toSignup) {
+          toSignup.addEventListener("click", (e) => {
+            e.preventDefault();
+            openSignup();
+          });
+        }
+
+        if (toSignin) {
+          toSignin.addEventListener("click", (e) => {
+            e.preventDefault();
+            openSignin();
+          });
+        }
+      }
+
+      function clearAuthMsg() {
+        const oldMsgs = document.querySelectorAll(".authmsg");
+        oldMsgs.forEach((el) => el.remove());
+      }
+
+      function showAuthMsg(target, msg) {
+        clearAuthMsg();
+
+        const box =
+          target === "signin"
+            ? document.querySelector(".signin__box")
+            : document.querySelector(".signup__box");
+
+        if (!box) return;
+
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "authmsg";
+        msgDiv.textContent = msg;
+
+        const form = box.querySelector("form");
+        if (form && form.nextSibling) {
+          box.insertBefore(msgDiv, form.nextSibling);
+        } else {
+          box.appendChild(msgDiv);
+        }
+      }
+    </script>
+    <script>
+      //Part 4-4: Sign Up Procedure
+      const signupForm = document.querySelector(".signup__form");
+
+      if (signupForm) {
+        signupForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearAuthMsg();
+
+          const name = signupForm.up_name.value.trim();
+          const email = signupForm.up_email.value.trim();
+          const password = signupForm.up_pw.value.trim();
+
+          try {
+            const res = await fetch("/api/user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, email, password }),
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.ok) {
+              showAuthMsg("signup", "註冊成功");
+            } else {
+              showAuthMsg("signup", result.message || "註冊失敗");
+            }
+          } catch {
+            showAuthMsg("signup", "系統錯誤，請稍後再試");
+          }
+        });
+      }
+
+      //Part 4-5: Sign In Procedure
+      const signinForm = document.querySelector(".signin__form");
+
+      if (signinForm) {
+        signinForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearAuthMsg();
+
+          const email = signinForm.in_email.value.trim();
+          const password = signinForm.in_pw.value.trim();
+
+          try {
+            const res = await fetch("/api/user/auth", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.token) {
+              localStorage.setItem("token", result.token);
+              location.reload();
+            } else {
+              showAuthMsg("signin", result.message || "登入失敗");
+            }
+          } catch {
+            showAuthMsg("signin", "系統錯誤，請稍後再試");
+          }
+        });
       }
     </script>
   </body>

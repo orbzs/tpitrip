@@ -231,3 +231,98 @@ footer {
     padding-right: 15px;
   }
 }
+
+.signin,
+.signup {
+  min-height: 275px;
+  width: 340px;
+  border-radius: 5px;
+  position: fixed;
+  z-index: 5;
+  top: 80px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  background-color: #ffffff;
+  box-shadow: 0px 4px 60px #aaaaaa;
+  overflow: hidden;
+  display: none;
+}
+.signup {
+  min-height: 332px;
+  width: 340px;
+  z-index: 6;
+}
+.is-open {
+  display: block;
+}
+.signin__decbar,
+.signup__decbar {
+  height: 10px;
+  width: 100%;
+  margin-top: 0;
+  background: linear-gradient(to right, #66aabb, #337788);
+}
+.signin__box,
+.signup__box {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+.signin__closeBtn,
+.signup__closeBtn {
+  height: 16px;
+  width: 16px;
+  position: absolute;
+  top: 27px;
+  right: 17px;
+  background-image: url("./images/icon_close.png");
+  cursor: pointer;
+}
+.signin__title,
+.signup__title {
+  font-size: 24px;
+}
+.signin__form,
+.signup__form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.form__input {
+  height: 47px;
+  width: 310px;
+  border: 1px solid #cccccc;
+  border-radius: 5px;
+}
+.button {
+  height: 47px;
+  width: 310px;
+  color: #ffffff;
+  background-color: #448899;
+  border-radius: 5px;
+}
+.signin__tosignup,
+.signup__tosignin {
+  text-decoration: none;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 4;
+  display: none;
+}
+.overlay.is-open {
+  display: block;
+}
+
+.authmsg {
+  width: 310px;
+  text-align: center;
+}

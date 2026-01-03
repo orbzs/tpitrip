@@ -50,8 +50,8 @@ from mysql.connector import Error
 
 dbconfig = {
   "host":"localhost",
-  "user":"root",
-  "password":"mysql",
+  "user":"appuser",
+  "password":"apppasword",
   "database":"tpidaytrip",
 }
 
